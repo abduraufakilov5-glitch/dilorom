@@ -1,361 +1,288 @@
 <!DOCTYPE html>
-<html lang="ru" class="dark">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Onyx Debt Tracker</title>
+    <title>Onyx Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        iosBg: '#000000',
-                        iosCard: '#1c1c1e',
-                        iosCardMuted: '#2c2c2e',
-                        iosBlue: '#0a84ff',
-                        iosGreen: '#30d158',
-                        iosRed: '#ff453a',
-                        iosOrange: '#ff9f0a'
-                    },
-                    backdropBlur: {
-                        xl: '20px'
+                        iosBg: '#f2f2f7',
+                        iosBlue: '#007aff',
+                        iosGreen: '#34c759',
+                        iosRed: '#ff3b30',
+                        textMain: '#1c1c1e',
+                        textMuted: '#8e8e93'
                     }
                 }
             }
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700;800&display=swap');
         
         body {
             font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #000000;
-            color: #ffffff;
+            background-color: #ffffff;
+            color: #1c1c1e;
             -webkit-font-smoothing: antialiased;
             user-select: none;
             overflow-x: hidden;
         }
 
-        /* Кастомный скроллбар для внутренних блоков */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
+        /* Анимированный фон (эффект жидкости под стеклом) */
+        .liquid-bg {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            background: #f2f2f7;
+            overflow: hidden;
         }
-        ::-webkit-scrollbar-track {
-            background: transparent;
+        .liquid-blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 15s infinite alternate ease-in-out;
         }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+        .blob-1 { width: 300px; height: 300px; background: #ff2a6d; top: -10%; left: -10%; }
+        .blob-2 { width: 400px; height: 400px; background: #007aff; bottom: 20%; right: -20%; animation-delay: -5s; }
+        .blob-3 { width: 350px; height: 350px; background: #34c759; top: 40%; left: -20%; animation-delay: -10s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(50px, 50px) scale(1.2); }
         }
 
-        .glass-panel {
-            background: rgba(28, 28, 30, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        /* Стили жидкого стекла */
+        .liquid-glass {
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(40px) saturate(200%);
+            -webkit-backdrop-filter: blur(40px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8);
         }
 
-        .glass-modal {
-            background: rgba(18, 18, 18, 0.85);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border-top: 1px solid rgba(255, 255, 255, 0.12);
+        .liquid-glass-modal {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(50px) saturate(200%);
+            -webkit-backdrop-filter: blur(50px) saturate(200%);
+            border-top: 1px solid rgba(255, 255, 255, 1);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.05);
         }
 
-        .ios-gradient-blue {
-            background: linear-gradient(135deg, #0a84ff 0%, #0040dd 100%);
+        .liquid-input {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+            backdrop-filter: blur(10px);
         }
 
-        .ios-gradient-green {
-            background: linear-gradient(135deg, #30d158 0%, #1c8734 100%);
+        .gradient-text {
+            background: linear-gradient(135deg, #000000 0%, #434343 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        .ios-gradient-gold {
-            background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 25%, #b38728 50%, #fbf5b7 100%);
-        }
-
-        /* Анимации появления */
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1) forwards; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 
-        .animate-slide-up {
-            animation: slideUp 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.25s ease-out forwards;
-        }
-
-        .safe-bottom {
-            padding-bottom: cubic-bezier(0.1, 0.76, 0.55, 0.94);
-        }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .safe-bottom { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
     </style>
 </head>
-<body class="flex justify-center min-h-screen bg-neutral-950">
+<body class="flex justify-center min-h-screen bg-gray-100">
 
-    <div class="w-full max-w-md bg-black min-h-screen flex flex-col relative border-x border-neutral-900 pb-24 shadow-2xl overflow-y-auto">
+    <!-- Абстрактный жидкий фон -->
+    <div class="liquid-bg">
+        <div class="liquid-blob blob-1"></div>
+        <div class="liquid-blob blob-2"></div>
+        <div class="liquid-blob blob-3"></div>
+    </div>
+
+    <!-- Мобильный контейнер -->
+    <div class="w-full max-w-md min-h-screen flex flex-col relative z-10 shadow-2xl overflow-y-auto hide-scroll">
         
-        <header class="sticky top-0 z-40 glass-panel px-5 pt-6 pb-4 flex justify-between items-center border-b border-white/5">
-            <div>
-                <p id="header-date" class="text-xs font-medium text-neutral-500 uppercase tracking-widest">ПОНЕДЕЛЬНИК, 25 МАЯ</p>
-                <h1 id="page-title" class="text-2xl font-bold tracking-tight text-white mt-0.5">Портфолио</h1>
-            </div>
-            <div class="flex items-center gap-3">
-                <span class="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-neutral-800 to-neutral-700 flex items-center justify-center border border-white/10 shadow-md">
-                    <span class="text-xs font-semibold tracking-wider text-neutral-300">AR</span>
+        <!-- HEADER -->
+        <header class="sticky top-0 z-40 px-6 pt-10 pb-4 liquid-glass border-b-0 rounded-b-3xl">
+            <div class="flex justify-between items-end">
+                <div>
+                    <p id="header-date" class="text-[11px] font-bold text-textMuted uppercase tracking-widest mb-1">МАЙ 25</p>
+                    <h1 id="page-title" class="text-3xl font-extrabold tracking-tight gradient-text">Главная</h1>
+                </div>
+                <div class="w-10 h-10 rounded-full liquid-glass flex items-center justify-center shadow-sm">
+                    <span class="text-sm font-bold text-black">AR</span>
                 </div>
             </div>
         </header>
 
-        <main class="flex-1 px-4 pt-4 space-y-6 overflow-x-hidden">
+        <!-- КОНТЕНТ -->
+        <main class="flex-1 px-5 pt-6 space-y-6 pb-32">
             
+            <!-- Вкладка 1: Дашборд -->
             <section id="view-dashboard" class="space-y-6 animate-fade-in">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="glass-panel rounded-3xl p-4 relative overflow-hidden bg-gradient-to-br from-zinc-900/40 to-neutral-900/80">
-                        <div class="absolute -right-6 -top-6 w-16 h-16 bg-iosBlue/10 rounded-full blur-xl"></div>
-                        <p class="text-xs font-medium text-neutral-400 flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full bg-iosBlue"></span> Мне должны ($)
-                        </p>
-                        <p id="stat-owed-usd" class="text-2xl font-bold tracking-tight mt-2 text-white">$0</p>
-                        <p id="stat-total-usd-orig" class="text-[10px] text-neutral-500 mt-1">Всего было: $0</p>
-                    </div>
-                    <div class="glass-panel rounded-3xl p-4 relative overflow-hidden bg-gradient-to-br from-zinc-900/40 to-neutral-900/80">
-                        <div class="absolute -right-6 -top-6 w-16 h-16 bg-iosOrange/10 rounded-full blur-xl"></div>
-                        <p class="text-xs font-medium text-neutral-400 flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full bg-iosOrange"></span> Мне должны (₽)
-                        </p>
-                        <p id="stat-owed-rub" class="text-2xl font-bold tracking-tight mt-2 text-white">0 ₽</p>
-                        <p id="stat-total-rub-orig" class="text-[10px] text-neutral-500 mt-1">Всего было: 0 ₽</p>
-                    </div>
-                </div>
-
-                <div class="glass-panel rounded-3xl p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400">Общий прогресс возвратов</h3>
-                        <span id="global-progress-percent" class="text-xs font-semibold text-iosGreen">0%</span>
-                    </div>
-                    <div class="w-full bg-white/5 h-2.5 rounded-full overflow-hidden p-[1px]">
-                        <div id="global-progress-bar" class="h-full ios-gradient-green rounded-full transition-all duration-500" style="width: 0%"></div>
-                    </div>
-                </div>
-
-                <div class="glass-panel rounded-3xl p-4 space-y-3">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400">Структура долгов ($)</h3>
-                    <div class="relative h-48 flex justify-center items-center">
-                        <canvas id="chart-dashboard-usd"></canvas>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <div class="flex justify-between items-center px-1">
-                        <h3 class="text-sm font-semibold text-neutral-400">Крупные остатки</h3>
-                    </div>
-                    <div id="dashboard-top-debts" class="space-y-2.5">
-                        </div>
-                </div>
-            </section>
-
-            <section id="view-debts" class="space-y-4 hidden animate-fade-in">
-                <div class="space-y-3">
-                    <div class="relative">
-                        <input type="text" id="search-input" placeholder="Поиск должника..." class="w-full bg-zinc-900/90 border border-white/5 text-sm rounded-2xl pl-10 pr-4 py-3 text-white placeholder-neutral-500 focus:outline-none focus:border-iosBlue/50 transition-colors">
-                        <div class="absolute left-3.5 top-3.5 text-neutral-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        </div>
-                    </div>
+                
+                <!-- Главный баланс (Liquid Card) -->
+                <div class="liquid-glass rounded-[32px] p-6 relative overflow-hidden text-center">
+                    <p class="text-sm font-semibold text-textMuted">Мне должны</p>
+                    <p id="stat-total-amount" class="text-5xl font-black tracking-tighter text-black mt-2 mb-1">0 смн</p>
+                    <p id="stat-total-original" class="text-xs font-medium text-textMuted">Изначально: 0 смн</p>
                     
-                    <div class="bg-zinc-900/60 p-1 rounded-xl flex">
-                        <button onclick="setFilter('all')" id="filter-all" class="flex-1 py-1.5 text-xs font-medium rounded-lg transition-all shadow text-white bg-white/10">Все</button>
-                        <button onclick="setFilter('active')" id="filter-active" class="flex-1 py-1.5 text-xs font-medium rounded-lg transition-all text-neutral-400">Активные</button>
-                        <button onclick="setFilter('partial')" id="filter-partial" class="flex-1 py-1.5 text-xs font-medium rounded-lg transition-all text-neutral-400">Частичные</button>
+                    <div class="mt-6">
+                        <div class="flex justify-between text-xs font-bold text-black mb-2">
+                            <span>Возвращено</span>
+                            <span id="global-progress-percent">0%</span>
+                        </div>
+                        <div class="w-full bg-black/5 h-3 rounded-full overflow-hidden p-0.5">
+                            <div id="global-progress-bar" class="h-full bg-black rounded-full transition-all duration-700" style="width: 0%"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="debts-list-container" class="space-y-3">
-                    </div>
-            </section>
-
-            <section id="view-analytics" class="space-y-5 hidden animate-fade-in">
-                <div class="glass-panel rounded-3xl p-5 space-y-4">
-                    <h3 class="text-sm font-semibold text-neutral-300">Распределение валютного портфеля</h3>
-                    <div class="relative h-56 flex justify-center items-center">
-                        <canvas id="chart-analytics-mix"></canvas>
-                    </div>
-                </div>
-                <div class="glass-panel rounded-3xl p-5 space-y-3">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-neutral-400">Сводные инсайты</h3>
-                    <div class="divide-y divide-white/5 text-sm">
-                        <div class="py-2.5 flex justify-between"><span class="text-neutral-400">Всего записей:</span><span id="insight-count" class="font-medium">0</span></div>
-                        <div class="py-2.5 flex justify-between"><span class="text-neutral-400">Средний чек долга ($):</span><span id="insight-avg-usd" class="font-medium">$0</span></div>
-                        <div class="py-2.5 flex justify-between"><span class="text-neutral-400">Закрытые позиции:</span><span id="insight-closed" class="font-medium text-iosGreen">0</span></div>
+                <!-- Крупнейшие долги -->
+                <div>
+                    <h3 class="text-lg font-bold text-black mb-3 px-1">Топ долгов</h3>
+                    <div id="dashboard-top-debts" class="space-y-3">
+                        <!-- Динамический контент -->
                     </div>
                 </div>
             </section>
 
-            <section id="view-settings" class="space-y-4 hidden animate-fade-in">
-                <div class="bg-zinc-900/40 rounded-3xl overflow-hidden border border-white/5">
-                    <div class="p-4 border-b border-white/5 flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-neutral-800 flex items-center justify-center text-orange-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                        </div>
-                        <div>
-                            <h4 class="text-sm font-medium">Резервное копирование</h4>
-                            <p class="text-[11px] text-neutral-500">Управление данными localStorage</p>
-                        </div>
+            <!-- Вкладка 2: Список -->
+            <section id="view-debts" class="space-y-5 hidden animate-fade-in">
+                <div class="liquid-glass rounded-2xl p-1.5 flex items-center shadow-sm">
+                    <div class="pl-3 text-textMuted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
-                    <div class="p-4 space-y-2">
-                        <button onclick="exportData()" class="w-full bg-white/5 hover:bg-white/10 text-white text-xs font-medium py-3 px-4 rounded-xl transition flex justify-between items-center">
-                            <span>Экспортировать JSON в буфер</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
-                        </button>
-                        <button onclick="importData()" class="w-full bg-white/5 hover:bg-white/10 text-white text-xs font-medium py-3 px-4 rounded-xl transition flex justify-between items-center">
-                            <span>Импортировать из буфера</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        </button>
-                        <button onclick="resetToMock()" class="w-full bg-iosRed/10 hover:bg-iosRed/20 text-iosRed text-xs font-medium py-3 px-4 rounded-xl transition flex justify-between items-center">
-                            <span>Сбросить на начальные демо-данные</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1H10a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
+                    <input type="text" id="search-input" placeholder="Поиск по имени..." class="w-full bg-transparent border-none text-sm px-3 py-2 text-black placeholder-textMuted focus:outline-none font-medium">
+                </div>
+
+                <!-- Простой переключатель (Сегменты) -->
+                <div class="flex gap-2">
+                    <button onclick="setFilter('all')" id="filter-all" class="flex-1 py-2 text-sm font-bold rounded-2xl liquid-glass text-black">Все</button>
+                    <button onclick="setFilter('active')" id="filter-active" class="flex-1 py-2 text-sm font-semibold rounded-2xl bg-white/30 text-textMuted transition">Активные</button>
+                    <button onclick="setFilter('partial')" id="filter-partial" class="flex-1 py-2 text-sm font-semibold rounded-2xl bg-white/30 text-textMuted transition">В процессе</button>
+                </div>
+
+                <div id="debts-list-container" class="space-y-3"></div>
+            </section>
+
+            <!-- Вкладка 3: Аналитика -->
+            <section id="view-analytics" class="space-y-6 hidden animate-fade-in">
+                <div class="liquid-glass rounded-[32px] p-6">
+                    <h3 class="text-center text-sm font-bold text-textMuted mb-6">Распределение долгов</h3>
+                    <div class="relative h-64">
+                        <canvas id="chart-analytics"></canvas>
                     </div>
                 </div>
 
-                <div class="text-center pt-4">
-                    <p class="text-[11px] text-neutral-600">Onyx Engine v18.4 • iOS Design Architecture</p>
+                <div class="liquid-glass rounded-[32px] p-6 space-y-4">
+                    <div class="flex justify-between items-center border-b border-black/5 pb-3">
+                        <span class="text-sm font-medium text-textMuted">Всего записей</span>
+                        <span id="insight-count" class="text-lg font-bold text-black">0</span>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-black/5 pb-3">
+                        <span class="text-sm font-medium text-textMuted">Средний долг</span>
+                        <span id="insight-avg" class="text-lg font-bold text-black">0 смн</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-textMuted">Полностью закрыты</span>
+                        <span id="insight-closed" class="text-lg font-bold text-iosGreen">0</span>
+                    </div>
                 </div>
             </section>
         </main>
 
-        <button onclick="openAddModal()" class="fixed bottom-24 right-6 w-14 h-14 rounded-full ios-gradient-blue shadow-lg shadow-iosBlue/20 flex items-center justify-center text-white z-40 hover:scale-105 active:scale-95 transition-transform">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <!-- FLOATING ACTION BUTTON -->
+        <button onclick="openAddModal()" class="fixed bottom-28 right-6 w-16 h-16 rounded-full bg-black shadow-2xl flex items-center justify-center text-white z-40 hover:scale-105 active:scale-95 transition-transform duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         </button>
 
-        <nav class="absolute bottom-0 left-0 right-0 h-20 glass-panel border-t border-white/5 flex items-center justify-around px-2 z-40 safe-bottom">
-            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex flex-col items-center gap-1 text-iosBlue transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V16zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V16z"/></nav></button>
-                <span class="text-[10px] font-medium">Главная</span>
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="fixed bottom-0 left-0 right-0 w-full max-w-md mx-auto liquid-glass rounded-t-[40px] border-b-0 h-24 flex items-start justify-around px-4 pt-4 z-40 safe-bottom">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="flex flex-col items-center gap-1.5 text-black">
+                <div class="w-12 h-8 rounded-full flex items-center justify-center bg-black/5" id="bg-tab-dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                </div>
             </button>
-            <button onclick="switchTab('debts')" id="tab-debts" class="flex flex-col items-center gap-1 text-neutral-500 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-                <span class="text-[10px] font-medium">Долги</span>
+            <button onclick="switchTab('debts')" id="tab-debts" class="flex flex-col items-center gap-1.5 text-textMuted">
+                <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors" id="bg-tab-debts">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                </div>
             </button>
-            <button onclick="switchTab('analytics')" id="tab-analytics" class="flex flex-col items-center gap-1 text-neutral-500 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
-                <span class="text-[10px] font-medium">Аналитика</span>
-            </button>
-            <button onclick="switchTab('settings')" id="tab-settings" class="flex flex-col items-center gap-1 text-neutral-500 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-                <span class="text-[10px] font-medium">Опции</span>
+            <button onclick="switchTab('analytics')" id="tab-analytics" class="flex flex-col items-center gap-1.5 text-textMuted">
+                <div class="w-12 h-8 rounded-full flex items-center justify-center transition-colors" id="bg-tab-analytics">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
             </button>
         </nav>
 
-        <div id="modal-detail" class="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm hidden items-end justify-center">
-            <div class="w-full max-w-md glass-modal rounded-t-[32px] p-6 space-y-6 transform translate-y-full transition-transform duration-300 animate-slide-up">
-                <div class="w-12 h-1 bg-neutral-600 rounded-full mx-auto -mt-2"></div>
+        <!-- МОДАЛКА: ДЕТАЛИ -->
+        <div id="modal-detail" class="fixed inset-0 bg-black/20 z-50 backdrop-blur-sm hidden items-end justify-center">
+            <div class="w-full max-w-md liquid-glass-modal rounded-t-[40px] p-6 space-y-6 transform translate-y-full transition-transform duration-300 animate-slide-up pb-10">
+                <div class="w-12 h-1.5 bg-black/20 rounded-full mx-auto -mt-2"></div>
                 
                 <div class="flex justify-between items-start">
                     <div>
-                        <span id="detail-badge" class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-iosBlue/10 text-iosBlue">В процессе</span>
-                        <h2 id="detail-name" class="text-2xl font-bold tracking-tight mt-2">Контрагент</h2>
-                        <p id="detail-date" class="text-xs text-neutral-400 mt-0.5">Дата открытия: —</p>
+                        <span id="detail-badge" class="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-black text-white">Статус</span>
+                        <h2 id="detail-name" class="text-2xl font-black text-black mt-3">Имя</h2>
+                        <p id="detail-date" class="text-sm font-medium text-textMuted mt-1">Открыт: —</p>
                     </div>
-                    <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-neutral-400">✕</button>
+                    <button onclick="closeDetailModal()" class="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black font-bold">✕</button>
                 </div>
 
-                <div class="bg-white/5 rounded-2xl p-4 flex justify-between items-center">
-                    <div>
-                        <p class="text-xs text-neutral-400">Остаток долга</p>
-                        <p id="detail-amount" class="text-3xl font-extrabold tracking-tight text-white mt-1">0</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-neutral-400">Изначально</p>
-                        <p id="detail-original" class="text-sm font-semibold text-neutral-300 mt-1">0</p>
-                    </div>
+                <div class="liquid-input rounded-[28px] p-5 text-center shadow-sm">
+                    <p class="text-sm font-semibold text-textMuted">Остаток</p>
+                    <p id="detail-amount" class="text-4xl font-black text-black my-1">0 смн</p>
+                    <p id="detail-original" class="text-xs font-bold text-textMuted">Из 0 смн</p>
                 </div>
 
-                <div class="space-y-1.5">
-                    <div class="flex justify-between text-xs text-neutral-400">
-                        <span>Погашено</span>
-                        <span id="detail-progress-label">0%</span>
-                    </div>
-                    <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-                        <div id="detail-progress-bar" class="h-full ios-gradient-green" style="width: 0%"></div>
-                    </div>
+                <!-- Быстрый платеж -->
+                <div class="flex gap-2 bg-black/5 p-2 rounded-3xl">
+                    <input type="number" id="repay-input" placeholder="Сумма" class="flex-1 bg-transparent border-none px-4 text-base font-bold text-black focus:outline-none placeholder-black/30">
+                    <button onclick="submitRepayment()" class="bg-black text-white text-sm font-bold px-6 py-3.5 rounded-2xl hover:scale-105 transition-transform shadow-lg">Оплатить</button>
                 </div>
 
-                <div class="bg-zinc-900/80 border border-white/5 rounded-2xl p-4 space-y-3">
-                    <p class="text-xs font-semibold text-neutral-300">Внести платеж / Уменьшить долг</p>
-                    <div class="flex gap-2">
-                        <input type="number" id="repay-input" placeholder="Сумма платежа" class="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 text-sm text-white focus:outline-none focus:border-iosGreen">
-                        <button onclick="submitRepayment()" class="bg-iosGreen text-black text-xs font-bold px-4 py-2.5 rounded-xl hover:opacity-90 active:scale-95 transition-all">Оплатить</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 pt-2">
-                    <button onclick="triggerEditFromDetail()" class="bg-white/10 hover:bg-white/15 text-white text-xs font-semibold py-3.5 rounded-xl transition">Редактировать</button>
-                    <button onclick="deleteDebtFromDetail()" class="bg-iosRed/20 hover:bg-iosRed/30 text-iosRed text-xs font-semibold py-3.5 rounded-xl transition">Удалить долг</button>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="triggerEditFromDetail()" class="flex-1 bg-black/5 hover:bg-black/10 text-black text-sm font-bold py-4 rounded-3xl transition">Изменить</button>
+                    <button onclick="deleteDebtFromDetail()" class="flex-1 bg-iosRed/10 text-iosRed text-sm font-bold py-4 rounded-3xl transition">Удалить</button>
                 </div>
             </div>
         </div>
 
-        <div id="modal-form" class="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm hidden items-end justify-center">
-            <div class="w-full max-w-md glass-modal rounded-t-[32px] p-6 space-y-5 transform translate-y-full transition-transform duration-300 animate-slide-up">
-                <div class="w-12 h-1 bg-neutral-600 rounded-full mx-auto -mt-2"></div>
+        <!-- МОДАЛКА: ФОРМА -->
+        <div id="modal-form" class="fixed inset-0 bg-black/20 z-50 backdrop-blur-sm hidden items-end justify-center">
+            <div class="w-full max-w-md liquid-glass-modal rounded-t-[40px] p-6 space-y-6 transform translate-y-full transition-transform duration-300 animate-slide-up pb-10">
+                <div class="w-12 h-1.5 bg-black/20 rounded-full mx-auto -mt-2"></div>
                 
-                <div class="flex justify-between items-center">
-                    <h2 id="form-title" class="text-xl font-bold tracking-tight">Новое обязательство</h2>
-                    <button onclick="closeFormModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-neutral-400">✕</button>
+                <div class="flex justify-between items-center mb-2">
+                    <h2 id="form-title" class="text-2xl font-black">Новый долг</h2>
+                    <button onclick="closeFormModal()" class="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black font-bold">✕</button>
                 </div>
 
                 <form id="debt-form" onsubmit="saveDebtForm(event)" class="space-y-4">
                     <input type="hidden" id="form-id">
                     
                     <div>
-                        <label class="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">Имя контрагента</label>
-                        <input type="text" id="form-name" required placeholder="Например: Апаи Шахло" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-iosBlue">
+                        <input type="text" id="form-name" required placeholder="Имя человека" class="w-full liquid-input rounded-2xl px-5 py-4 text-lg font-bold text-black focus:outline-none focus:ring-2 ring-black/20 placeholder-black/30">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">Сумма долга</label>
-                            <input type="number" id="form-amount" required placeholder="0.00" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-iosBlue">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">Валюта</label>
-                            <select id="form-currency" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-iosBlue">
-                                <option value="$">USD ($)</option>
-                                <option value="₽">RUB (₽)</option>
-                            </select>
-                        </div>
+                    <div>
+                        <input type="number" id="form-amount" required placeholder="Сумма (смн)" class="w-full liquid-input rounded-2xl px-5 py-4 text-lg font-bold text-black focus:outline-none focus:ring-2 ring-black/20 placeholder-black/30">
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">Тип операции</label>
-                            <select id="form-type" class="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-iosBlue">
-                                <option value="owed_to_me">Мне должны</option>
-                                <option value="owed_by_me">Я должен</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-medium text-neutral-400 uppercase tracking-wider mb-1.5">Дата открытия</label>
-                            <input type="date" id="form-date" required class="w-full bg-zinc-900 border border-white/10 rounded-xl px-3.5 py-3 text-sm text-white focus:outline-none focus:border-iosBlue">
-                        </div>
+                    <div>
+                        <input type="date" id="form-date" required class="w-full liquid-input rounded-2xl px-5 py-4 text-base font-semibold text-textMuted focus:outline-none">
                     </div>
 
-                    <button type="submit" class="w-full bg-iosBlue hover:opacity-90 text-white text-sm font-bold py-3.5 rounded-xl transition mt-2 shadow-lg shadow-iosBlue/10">
-                        Сохранить в реестр
+                    <button type="submit" class="w-full bg-black text-white text-lg font-bold py-4 rounded-3xl transition mt-4 shadow-xl active:scale-95">
+                        Сохранить
                     </button>
                 </form>
             </div>
@@ -364,267 +291,190 @@
     </div>
 
     <script>
-        // Стартовые данные по требованию
+        // Адаптированные данные в единой валюте (сомони)
         const mockDebts = [
-            { id: "1", name: "Апаи Шахло", amount: 6220, originalAmount: 6220, currency: "$", openedAt: "2026-03-30", progress: 0, type: "owed_to_me", status: "active" },
-            { id: "2", name: "Хусенни Хотуни", amount: 300, originalAmount: 840, currency: "$", openedAt: "2026-03-31", progress: 64, type: "owed_to_me", status: "partial" },
-            { id: "3", name: "Нигора Парда", amount: 440, originalAmount: 1000, currency: "$", openedAt: "2026-04-06", progress: 56, type: "owed_to_me", status: "partial" },
-            { id: "4", name: "Шахло Тилло", amount: 1950, originalAmount: 5180, currency: "₽", openedAt: "2025-04-18", progress: 62, type: "owed_to_me", status: "partial" },
-            { id: "5", name: "Зарина", amount: 100, originalAmount: 200, currency: "₽", openedAt: "2025-05-06", progress: 50, type: "owed_to_me", status: "partial" },
-            { id: "6", name: "Апаи Таманно", amount: 450, originalAmount: 600, currency: "₽", openedAt: "2025-05-12", progress: 25, type: "owed_to_me", status: "partial" },
-            { id: "7", name: "Апаи Хурсанд", amount: 350, originalAmount: 600, currency: "₽", openedAt: "2025-06-05", progress: 41, type: "owed_to_me", status: "partial" },
-            { id: "8", name: "Дилором Москва", amount: 850, originalAmount: 850, currency: "$", openedAt: "2026-05-21", progress: 0, type: "owed_to_me", status: "active" },
-            { id: "9", name: "Парвина Тилло", amount: 200, originalAmount: 200, currency: "$", openedAt: "2026-05-23", progress: 0, type: "owed_to_me", status: "active" },
-            { id: "10", name: "Хуршед", amount: 150, originalAmount: 150, currency: "$", openedAt: "2026-05-23", progress: 0, type: "owed_to_me", status: "active" }
+            { id: "1", name: "Апаи Шахло", amount: 66500, originalAmount: 66500, currency: "смн", openedAt: "2026-03-30", progress: 0, status: "active" },
+            { id: "2", name: "Хусенни Хотуни", amount: 3210, originalAmount: 8980, currency: "смн", openedAt: "2026-03-31", progress: 64, status: "partial" },
+            { id: "3", name: "Нигора Парда", amount: 4700, originalAmount: 10700, currency: "смн", openedAt: "2026-04-06", progress: 56, status: "partial" },
+            { id: "4", name: "Шахло Тилло", amount: 250, originalAmount: 670, currency: "смн", openedAt: "2025-04-18", progress: 62, status: "partial" },
+            { id: "5", name: "Зарина", amount: 15, originalAmount: 25, currency: "смн", openedAt: "2025-05-06", progress: 40, status: "partial" },
+            { id: "6", name: "Апаи Таманно", amount: 55, originalAmount: 75, currency: "смн", openedAt: "2025-05-12", progress: 26, status: "partial" },
+            { id: "7", name: "Апаи Хурсанд", amount: 45, originalAmount: 75, currency: "смн", openedAt: "2025-06-05", progress: 40, status: "partial" },
+            { id: "8", name: "Дилором Москва", amount: 9090, originalAmount: 9090, currency: "смн", openedAt: "2026-05-21", progress: 0, status: "active" },
+            { id: "9", name: "Парвина Тилло", amount: 2140, originalAmount: 2140, currency: "смн", openedAt: "2026-05-23", progress: 0, status: "active" },
+            { id: "10", name: "Хуршед", amount: 1600, originalAmount: 1600, currency: "смн", openedAt: "2026-05-23", progress: 0, status: "active" }
         ];
 
         let debts = [];
         let currentTab = 'dashboard';
         let currentFilter = 'all';
         let selectedDebtId = null;
-        let chartUsdInstance = null;
-        let chartMixInstance = null;
+        let chartInstance = null;
 
-        // Инициализация при старте страницы
         window.addEventListener('DOMContentLoaded', () => {
-            // Установка текущей даты в заголовке
-            const options = { weekday: 'long', month: 'long', day: 'numeric' };
-            document.getElementById('header-date').innerText = new Date().toLocaleDateString('ru-RU', options).toUpperCase();
+            const dateStr = new Date().toLocaleDateString('ru-RU', { month: 'long', day: 'numeric' });
+            document.getElementById('header-date').innerText = dateStr;
             
-            // Проверка localStorage
-            if (!localStorage.getItem('onyx_debts_v1')) {
-                localStorage.setItem('onyx_debts_v1', JSON.stringify(mockDebts));
+            if (!localStorage.getItem('onyx_debts_v2')) {
+                localStorage.setItem('onyx_debts_v2', JSON.stringify(mockDebts));
             }
             
             loadData();
             switchTab('dashboard');
 
-            // Слушатель строки поиска
-            document.getElementById('search-input').addEventListener('input', () => {
-                renderDebtsList();
-            });
+            document.getElementById('search-input').addEventListener('input', renderDebtsList);
         });
 
         function loadData() {
-            debts = JSON.parse(localStorage.getItem('onyx_debts_v1')) || [];
+            debts = JSON.parse(localStorage.getItem('onyx_debts_v2')) || [];
             calculateMetrics();
         }
 
         function saveData() {
-            localStorage.setItem('onyx_debts_v1', JSON.stringify(debts));
+            localStorage.setItem('onyx_debts_v2', JSON.stringify(debts));
             calculateMetrics();
         }
 
-        // Подсчет финансовых метрик
         function calculateMetrics() {
-            let activeUsd = 0; let originalUsd = 0;
-            let activeRub = 0; let originalRub = 0;
+            let activeAmount = 0; 
+            let originalAmount = 0;
 
             debts.forEach(d => {
-                // Рассматриваем только структуру долгов типа 'owed_to_me' (мне должны) для дашборда
-                if (d.type === 'owed_to_me' && d.status !== 'settled') {
-                    if (d.currency === '$') {
-                        activeUsd += d.amount;
-                        originalUsd += d.originalAmount;
-                    } else if (d.currency === '₽') {
-                        activeRub += d.amount;
-                        originalRub += d.originalAmount;
-                    }
+                if (d.status !== 'settled') {
+                    activeAmount += d.amount;
+                    originalAmount += d.originalAmount;
                 }
             });
 
-            // Обновление DOM элементов
-            document.getElementById('stat-owed-usd').innerText = `$${activeUsd.toLocaleString()}`;
-            document.getElementById('stat-total-usd-orig').innerText = `Всего было: $${originalUsd.toLocaleString()}`;
-            document.getElementById('stat-owed-rub').innerText = `${activeRub.toLocaleString()} ₽`;
-            document.getElementById('stat-total-rub-orig').innerText = `Всего было: ${originalRub.toLocaleString()} ₽`;
+            document.getElementById('stat-total-amount').innerText = `${activeAmount.toLocaleString()} смн`;
+            document.getElementById('stat-total-original').innerText = `Изначально: ${originalAmount.toLocaleString()} смн`;
 
-            // Глобальный прогресс бар
-            let totalOrigCalculatedInUsd = originalUsd + (originalRub / 75); // Приблизительный кросс для индикатора общего прогресса
-            let totalCurrentCalculatedInUsd = activeUsd + (activeRub / 75);
             let globalProgress = 0;
-            if (totalOrigCalculatedInUsd > 0) {
-                globalProgress = Math.round(((totalOrigCalculatedInUsd - totalCurrentCalculatedInUsd) / totalOrigCalculatedInUsd) * 100);
+            if (originalAmount > 0) {
+                globalProgress = Math.round(((originalAmount - activeAmount) / originalAmount) * 100);
             }
             document.getElementById('global-progress-percent').innerText = `${globalProgress}%`;
             document.getElementById('global-progress-bar').style.width = `${globalProgress}%`;
 
-            // Заполнение топ листов на дашборде
             renderDashboardTop();
-            
-            // Перерисовка графиков если они открыты
-            if (currentTab === 'dashboard') initDashboardChart();
-            if (currentTab === 'analytics') initAnalyticsCharts();
+            if (currentTab === 'analytics') initChart();
         }
 
-        // Переключение вкладок (Navigation)
         function switchTab(tabName) {
             currentTab = tabName;
             
-            // Настройка видимости блоков
-            ['dashboard', 'debts', 'analytics', 'settings'].forEach(t => {
+            ['dashboard', 'debts', 'analytics'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`tab-${t}`).classList.remove('text-iosBlue');
-                document.getElementById(`tab-${t}`).classList.add('text-neutral-500');
+                document.getElementById(`tab-${t}`).classList.remove('text-black');
+                document.getElementById(`tab-${t}`).classList.add('text-textMuted');
+                document.getElementById(`bg-tab-${t}`).classList.remove('bg-black/5');
             });
 
             document.getElementById(`view-${tabName}`).classList.remove('hidden');
-            document.getElementById(`tab-${tabName}`).classList.add('text-iosBlue');
-            document.getElementById(`tab-${tabName}`).classList.remove('text-neutral-500');
+            document.getElementById(`tab-${tabName}`).classList.add('text-black');
+            document.getElementById(`tab-${tabName}`).classList.remove('text-textMuted');
+            document.getElementById(`bg-tab-${tabName}`).classList.add('bg-black/5');
 
-            // Изменение тайтла шапки
-            const titles = { 'dashboard': 'Портфолио', 'debts': 'Реестр долгов', 'analytics': 'Аналитика', 'settings': 'Параметры' };
+            const titles = { 'dashboard': 'Главная', 'debts': 'Долги', 'analytics': 'Обзор' };
             document.getElementById('page-title').innerText = titles[tabName];
 
-            // Триггеры отрисовки для специфичных вкладок
             if (tabName === 'debts') renderDebtsList();
-            if (tabName === 'dashboard') initDashboardChart();
             if (tabName === 'analytics') {
-                initAnalyticsCharts();
-                // Заполнение инсайтов
+                initChart();
                 document.getElementById('insight-count').innerText = debts.length;
-                let activeUsdDebts = debts.filter(d => d.currency === '$' && d.status !== 'settled');
-                let avgUsd = activeUsdDebts.reduce((sum, d) => sum + d.amount, 0) / (activeUsdDebts.length || 1);
-                document.getElementById('insight-avg-usd').innerText = `$${Math.round(avgUsd).toLocaleString()}`;
+                let activeDebts = debts.filter(d => d.status !== 'settled');
+                let avg = activeDebts.reduce((sum, d) => sum + d.amount, 0) / (activeDebts.length || 1);
+                document.getElementById('insight-avg').innerText = `${Math.round(avg).toLocaleString()} смн`;
                 document.getElementById('insight-closed').innerText = debts.filter(d => d.status === 'settled').length;
             }
         }
 
-        // Генерация верхних крупных долгов на дашборде
         function renderDashboardTop() {
             const container = document.getElementById('dashboard-top-debts');
             container.innerHTML = '';
             
-            const highDebts = [...debts]
-                .filter(d => d.status !== 'settled')
-                .sort((a, b) => b.amount - a.amount)
-                .slice(0, 3);
+            const highDebts = [...debts].filter(d => d.status !== 'settled').sort((a, b) => b.amount - a.amount).slice(0, 3);
 
             if(highDebts.length === 0) {
-                container.innerHTML = `<p class="text-xs text-neutral-500 text-center py-4">Все долги закрыты 🎉</p>`;
+                container.innerHTML = `<p class="text-sm text-textMuted text-center py-4">Нет активных долгов</p>`;
                 return;
             }
 
             highDebts.forEach(d => {
                 const item = document.createElement('div');
-                item.className = 'glass-panel rounded-2xl p-3.5 flex justify-between items-center bg-zinc-900/30 cursor-pointer active:scale-[0.99] transition-transform';
+                item.className = 'liquid-glass rounded-3xl p-4 flex justify-between items-center cursor-pointer active:scale-95 transition-transform';
                 item.onclick = () => openDetailModal(d.id);
                 item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-2.5 h-2.5 rounded-full ${d.currency === '$' ? 'bg-iosBlue' : 'bg-iosOrange'}"></div>
-                        <div>
-                            <p class="text-sm font-semibold">${d.name}</p>
-                            <p class="text-[10px] text-neutral-500">Погашено: ${d.progress}%</p>
-                        </div>
+                    <div>
+                        <p class="text-base font-bold text-black">${d.name}</p>
+                        <p class="text-[11px] font-semibold text-textMuted mt-0.5">${d.progress}% выплачено</p>
                     </div>
-                    <p class="text-sm font-bold tracking-tight">${d.amount.toLocaleString()} ${d.currency}</p>
+                    <p class="text-lg font-black tracking-tight text-black">${d.amount.toLocaleString()} смн</p>
                 `;
                 container.appendChild(item);
             });
         }
 
-        // Фильтрация реестра
         function setFilter(filterType) {
             currentFilter = filterType;
             ['all', 'active', 'partial'].forEach(f => {
-                document.getElementById(`filter-${f}`).className = "flex-1 py-1.5 text-xs font-medium rounded-lg transition-all text-neutral-400";
+                document.getElementById(`filter-${f}`).className = "flex-1 py-2 text-sm font-semibold rounded-2xl bg-white/30 text-textMuted transition";
             });
-            document.getElementById(`filter-${filterType}`).className = "flex-1 py-1.5 text-xs font-medium rounded-lg transition-all shadow text-white bg-white/10";
+            document.getElementById(`filter-${filterType}`).className = "flex-1 py-2 text-sm font-bold rounded-2xl liquid-glass text-black";
             renderDebtsList();
         }
 
-        // Отрисовка основного реестра долгов
         function renderDebtsList() {
             const container = document.getElementById('debts-list-container');
             container.innerHTML = '';
-
-            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+            const query = document.getElementById('search-input').value.toLowerCase();
 
             let filtered = debts.filter(d => {
-                const matchesSearch = d.name.toLowerCase().includes(searchQuery);
-                if (!matchesSearch) return false;
-
+                if (!d.name.toLowerCase().includes(query)) return false;
                 if (currentFilter === 'active') return d.status === 'active';
                 if (currentFilter === 'partial') return d.status === 'partial';
-                return true; // для 'all'
+                return true;
             });
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-12 space-y-2">
-                        <p class="text-sm text-neutral-500">Записи не найдены</p>
-                        <p class="text-xs text-neutral-600">Измените критерии поиска или добавьте новый долг</p>
-                    </div>
-                `;
-                return;
-            }
 
             filtered.forEach(d => {
                 const card = document.createElement('div');
-                // Визуальный статус карточки
-                let borderHighlight = 'border-white/5';
-                if(d.status === 'settled') borderHighlight = 'border-iosGreen/20 opacity-60';
-
-                card.className = `glass-panel rounded-3xl p-4 space-y-3 border ${borderHighlight} bg-gradient-to-br from-zinc-900/20 to-neutral-900/40 relative overflow-hidden active:scale-[0.98] transition-all cursor-pointer`;
+                let opacity = d.status === 'settled' ? 'opacity-50' : '';
+                
+                card.className = `liquid-glass rounded-[28px] p-5 cursor-pointer active:scale-[0.98] transition-transform ${opacity}`;
                 card.onclick = () => openDetailModal(d.id);
 
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h4 class="text-base font-bold tracking-tight text-white">${d.name}</h4>
-                            <p class="text-[10px] text-neutral-500 mt-0.5">Открыт: ${d.openedAt}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-base font-black tracking-tight ${d.status === 'settled' ? 'text-iosGreen' : 'text-white'}">
-                                ${d.status === 'settled' ? 'Закрыт' : `${d.amount.toLocaleString()} ${d.currency}`}
-                            </p>
-                            <p class="text-[10px] text-neutral-500">из ${d.originalAmount.toLocaleString()} ${d.currency}</p>
-                        </div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-lg font-bold text-black">${d.name}</h4>
+                        <p class="text-xl font-black ${d.status === 'settled' ? 'text-iosGreen' : 'text-black'}">
+                            ${d.status === 'settled' ? 'Закрыт' : `${d.amount.toLocaleString()} <span class="text-sm">смн</span>`}
+                        </p>
                     </div>
-                    
-                    <div class="space-y-1">
-                        <div class="flex justify-between text-[10px] text-neutral-400">
-                            <span>Прогресс выплаты</span>
-                            <span>${d.progress}%</span>
-                        </div>
-                        <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                            <div class="h-full ${d.status === 'settled' ? 'bg-iosGreen' : 'ios-gradient-blue'} transition-all" style="width: ${d.progress}%"></div>
-                        </div>
+                    <div class="w-full bg-black/5 h-2 rounded-full overflow-hidden">
+                        <div class="h-full bg-black rounded-full" style="width: ${d.progress}%"></div>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // МОДАЛЬНОЕ ОКНО: ДЕТАЛИ
+        // Модалки
         function openDetailModal(id) {
             selectedDebtId = id;
-            const debt = debts.find(d => d.id === id);
-            if (!debt) return;
+            const d = debts.find(x => x.id === id);
+            if (!d) return;
 
-            document.getElementById('detail-name').innerText = debt.name;
-            document.getElementById('detail-date').innerText = `Дата открытия: ${debt.openedAt}`;
-            document.getElementById('detail-amount').innerText = `${debt.amount.toLocaleString()} ${debt.currency}`;
-            document.getElementById('detail-original').innerText = `${debt.originalAmount.toLocaleString()} ${debt.currency}`;
-            document.getElementById('detail-progress-label').innerText = `${debt.progress}%`;
-            document.getElementById('detail-progress-bar').style.width = `${debt.progress}%`;
+            document.getElementById('detail-name').innerText = d.name;
+            document.getElementById('detail-amount').innerText = `${d.amount.toLocaleString()} смн`;
+            document.getElementById('detail-original').innerText = `Из ${d.originalAmount.toLocaleString()} смн`;
             document.getElementById('repay-input').value = '';
 
             const badge = document.getElementById('detail-badge');
-            if (debt.status === 'active') {
-                badge.innerText = 'Активен';
-                badge.className = 'px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-iosBlue/10 text-iosBlue';
-            } else if (debt.status === 'partial') {
-                badge.innerText = 'Погашается';
-                badge.className = 'px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-iosOrange/10 text-iosOrange';
-            } else if (debt.status === 'settled') {
-                badge.innerText = 'Выплачен';
-                badge.className = 'px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-iosGreen/10 text-iosGreen';
-            }
+            badge.innerText = d.status === 'active' ? 'Новый' : d.status === 'partial' ? 'В процессе' : 'Закрыт';
+            badge.className = `px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${d.status === 'settled' ? 'bg-iosGreen text-white' : 'bg-black text-white'}`;
 
             const modal = document.getElementById('modal-detail');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
         function closeDetailModal() {
@@ -632,80 +482,52 @@
             document.getElementById('modal-detail').classList.remove('flex');
         }
 
-        // ЧАСТИЧНОЕ ПОГАШЕНИЕ
         function submitRepayment() {
-            const input = document.getElementById('repay-input');
-            const paymentValue = parseFloat(input.value);
+            const val = parseFloat(document.getElementById('repay-input').value);
+            if (isNaN(val) || val <= 0) return alert('Введите корректную сумму');
 
-            if (isNaN(paymentValue) || paymentValue <= 0) {
-                alert('Введите корректную сумму транзакции');
-                return;
-            }
+            const d = debts.find(x => x.id === selectedDebtId);
+            if (val > d.amount) return alert('Сумма превышает остаток!');
 
-            const debt = debts.find(d => d.id === selectedDebtId);
-            if (!debt) return;
-
-            if (paymentValue > debt.amount) {
-                alert('Сумма платежа превышает остаток долга!');
-                return;
-            }
-
-            // Пересчет баланса
-            debt.amount = Math.max(0, debt.amount - paymentValue);
-            debt.progress = Math.round(((debt.originalAmount - debt.amount) / debt.originalAmount) * 100);
-            
-            if (debt.amount === 0) {
-                debt.status = 'settled';
-                debt.progress = 100;
-            } else {
-                debt.status = 'partial';
-            }
+            d.amount = Math.max(0, d.amount - val);
+            d.progress = Math.round(((d.originalAmount - d.amount) / d.originalAmount) * 100);
+            d.status = d.amount === 0 ? 'settled' : 'partial';
 
             saveData();
             closeDetailModal();
-            // Обновляем текущий контейнер для мгновенного отклика UI
             if (currentTab === 'debts') renderDebtsList();
         }
 
-        // УДАЛЕНИЕ ДОЛГА
         function deleteDebtFromDetail() {
-            if (confirm('Вы уверены, что хотите удалить эту запись безвозвратно?')) {
-                debts = debts.filter(d => d.id !== selectedDebtId);
+            if (confirm('Точно удалить?')) {
+                debts = debts.filter(x => x.id !== selectedDebtId);
                 saveData();
                 closeDetailModal();
                 if (currentTab === 'debts') renderDebtsList();
             }
         }
 
-        // МОДАЛЬНОЕ ОКНО ФОРМЫ (ADD / EDIT)
         function openAddModal() {
-            document.getElementById('form-title').innerText = 'Новое обязательство';
+            document.getElementById('form-title').innerText = 'Новый долг';
             document.getElementById('form-id').value = '';
             document.getElementById('debt-form').reset();
-            // Дефолтная дата сегодня
             document.getElementById('form-date').value = new Date().toISOString().split('T')[0];
             
             const modal = document.getElementById('modal-form');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
         function triggerEditFromDetail() {
-            const debt = debts.find(d => d.id === selectedDebtId);
-            if (!debt) return;
-
-            document.getElementById('form-title').innerText = 'Редактирование';
-            document.getElementById('form-id').value = debt.id;
-            document.getElementById('form-name').value = debt.name;
-            document.getElementById('form-amount').value = debt.amount;
-            document.getElementById('form-currency').value = debt.currency;
-            document.getElementById('form-type').value = debt.type;
-            document.getElementById('form-date').value = debt.openedAt;
+            const d = debts.find(x => x.id === selectedDebtId);
+            document.getElementById('form-title').innerText = 'Изменить';
+            document.getElementById('form-id').value = d.id;
+            document.getElementById('form-name').value = d.name;
+            document.getElementById('form-amount').value = d.amount;
+            document.getElementById('form-date').value = d.openedAt;
 
             closeDetailModal();
             const modal = document.getElementById('modal-form');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
         }
 
         function closeFormModal() {
@@ -718,160 +540,51 @@
             const id = document.getElementById('form-id').value;
             const name = document.getElementById('form-name').value;
             const amount = parseFloat(document.getElementById('form-amount').value);
-            const currency = document.getElementById('form-currency').value;
-            const type = document.getElementById('form-type').value;
             const date = document.getElementById('form-date').value;
 
             if (id) {
-                // Редактирование
-                const debt = debts.find(d => d.id === id);
-                if (debt) {
-                    debt.name = name;
-                    // Если пользователь меняет сумму, подтягиваем лимиты
-                    if(debt.amount !== amount) {
-                        debt.originalAmount = amount;
-                        debt.progress = 0;
-                        debt.status = 'active';
-                    }
-                    debt.amount = amount;
-                    debt.currency = currency;
-                    debt.type = type;
-                    debt.openedAt = date;
+                const d = debts.find(x => x.id === id);
+                if(d.amount !== amount) {
+                    d.originalAmount = amount;
+                    d.progress = 0;
+                    d.status = 'active';
                 }
+                d.name = name; d.amount = amount; d.openedAt = date;
             } else {
-                // Создание новой записи
-                const newDebt = {
-                    id: String(Date.now()),
-                    name: name,
-                    amount: amount,
-                    originalAmount: amount,
-                    currency: currency,
-                    openedAt: date,
-                    progress: 0,
-                    type: type,
-                    status: 'active'
-                };
-                debts.push(newDebt);
+                debts.push({ id: String(Date.now()), name, amount, originalAmount: amount, currency: 'смн', openedAt: date, progress: 0, status: 'active' });
             }
 
-            saveData();
-            closeFormModal();
+            saveData(); closeFormModal();
             if (currentTab === 'debts') renderDebtsList();
         }
 
-        // НАСТРОЙКИ: ИМПОРТ / ЭКСПОРТ
-        function exportData() {
-            const dataStr = JSON.stringify(debts, null, 2);
-            navigator.clipboard.writeText(dataStr).then(() => {
-                alert('Конфигурация JSON успешно скопирована в буфер обмена!');
-            }).catch(err => {
-                alert('Ошибка копирования: ' + err);
-            });
-        }
+        function initChart() {
+            const ctx = document.getElementById('chart-analytics').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
 
-        function importData() {
-            const json = prompt('Вставьте валидный JSON массив данных долгов:');
-            if (!json) return;
-            try {
-                const parsed = JSON.parse(json);
-                if (Array.isArray(parsed)) {
-                    debts = parsed;
-                    saveData();
-                    alert('Данные успешно импортированы и синхронизированы!');
-                    location.reload();
-                } else {
-                    alert('Ошибка: Данные должны быть массивом.');
-                }
-            } catch (e) {
-                alert('Критическая ошибка разбора JSON структуры.');
-            }
-        }
+            const active = debts.filter(d => d.status !== 'settled').sort((a,b)=>b.amount-a.amount).slice(0, 5);
+            let labels = active.map(d => d.name);
+            let data = active.map(d => d.amount);
 
-        function resetToMock() {
-            if (confirm('Сбросить текущий прогресс и вернуть первоначальный список Апаи Шахло, Хусенни Хотуни и др.?')) {
-                localStorage.setItem('onyx_debts_v1', JSON.stringify(mockDebts));
-                loadData();
-                if (currentTab === 'debts') renderDebtsList();
-                alert('Данные восстановлены!');
-            }
-        }
+            if(labels.length === 0) { labels = ['Пусто']; data = [1]; }
 
-        // ОРГАНИЗАЦИЯ СЕРВИСА ГРАФИКОВ (CHART.JS)
-        function initDashboardChart() {
-            const ctx = document.getElementById('chart-dashboard-usd').getContext('2d');
-            
-            // Уничтожаем старый инстанс если он был, во избежание утечек памяти
-            if (chartUsdInstance) chartUsdInstance.destroy();
-
-            // Берем активные долги в долларах для структуры
-            const activeUsdDebts = debts.filter(d => d.currency === '$' && d.status !== 'settled');
-            
-            let labels = activeUsdDebts.map(d => d.name);
-            let dataValues = activeUsdDebts.map(d => d.amount);
-
-            if(labels.length === 0) {
-                labels = ['Нет долгов'];
-                dataValues = [0];
-            }
-
-            chartUsdInstance = new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
                     datasets: [{
-                        data: dataValues,
-                        backgroundColor: [
-                            '#0a84ff', '#30d158', '#ff9f0a', '#ff453a', '#bf953f', 
-                            '#5e5ce6', '#64d2ff', '#a2845e', '#ffd60a', '#ff375f'
-                        ],
-                        borderWidth: 0,
-                        hoverOffset: 4
+                        data: data,
+                        backgroundColor: ['#000000', '#333333', '#666666', '#999999', '#cccccc'],
+                        borderWidth: 4,
+                        borderColor: '#ffffff',
+                        hoverOffset: 10
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { color: '#8e8e93', font: { size: 10, family: 'SF Pro Display' } }
-                        }
-                    },
-                    cutout: '75%'
-                }
-            });
-        }
-
-        function initAnalyticsCharts() {
-            const ctxMix = document.getElementById('chart-analytics-mix').getContext('2d');
-            if (chartMixInstance) chartMixInstance.destroy();
-
-            // Подсчитаем общие объемы по двум валютам
-            let usdSum = debts.filter(d => d.currency === '$' && d.status !== 'settled').reduce((s, d) => s + d.amount, 0);
-            let rubSum = debts.filter(d => d.currency === '₽' && d.status !== 'settled').reduce((s, d) => s + d.amount, 0);
-
-            chartMixInstance = new Chart(ctxMix, {
-                type: 'bar',
-                data: {
-                    labels: ['USD ($)', 'RUB (₽)'],
-                    datasets: [{
-                        label: 'В активном остатке',
-                        data: [usdSum, rubSum],
-                        backgroundColor: ['#0a84ff', '#ff9f0a'],
-                        borderRadius: 12,
-                        borderSkipped: false,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: '#8e8e93' } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8e8e93' } }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    cutout: '70%',
+                    layout: { padding: 10 }
                 }
             });
         }
